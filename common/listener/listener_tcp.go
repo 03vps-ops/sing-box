@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/sagernet/sing-box/adapter"
+	"github.com/sagernet/sing-box/common/proxyproto"
 	"github.com/sagernet/sing-box/common/redir"
 	C "github.com/sagernet/sing-box/constant"
 	"github.com/sagernet/sing-box/log"
@@ -21,9 +22,8 @@ import (
 )
 
 func (l *Listener) ListenTCP() (net.Listener, error) {
-	//nolint:staticcheck
-	if l.listenOptions.ProxyProtocol || l.listenOptions.ProxyProtocolAcceptNoHeader {
-		return nil, E.New("Proxy Protocol is deprecated and removed in sing-box 1.6.0")
+	if l.listenOptions.ProxyProtocol {
+		l.logger.Warn("Proxy Protocol support restored in this fork (03vps-ops)")
 	}
 	var err error
 	bindAddr := M.SocksaddrFrom(l.listenOptions.Listen.Build(netip.AddrFrom4([4]byte{127, 0, 0, 1})), l.listenOptions.ListenPort)
@@ -75,6 +75,9 @@ func (l *Listener) ListenTCP() (net.Listener, error) {
 		return nil, err
 	}
 	l.logger.Info("tcp server started at ", tcpListener.Addr())
+	if l.listenOptions.ProxyProtocol {
+		tcpListener = &proxyproto.Listener{Listener: tcpListener, AcceptNoHeader: l.listenOptions.ProxyProtocolAcceptNoHeader}
+	}
 	l.tcpListener = tcpListener
 	return tcpListener, err
 }
